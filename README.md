@@ -69,4 +69,3 @@ frontend và bộ kiểm thử sẽ được triển khai trong các bước ti�
 Không đưa dữ liệu khách hàng có thông tin nhận diện cá nhân hoặc dữ liệu mật
 vào repository. Dữ liệu lớn và các tệp mô hình sinh ra nên được quản lý ngoài
 Git hoặc bằng cơ chế lưu trữ phù hợp.
-// Nhánh master
