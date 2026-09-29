@@ -1,22 +1,15 @@
-field_name,data_type,description,example,usage
-customerID,string,"Mã khách hàng duy nhất để định danh từng thuê bao","7590-VHVEG","Identifier, thường không dùng làm feature trực tiếp"
-gender,string,"Giới tính của khách hàng","Male","Feature có thể qua mã hóa"
-SeniorCitizen,integer,"Khách hàng thuộc nhóm người cao tuổi (0=No, 1=Yes)",1,"Feature nhị phân"
-Partner,string,"Khách hàng có đối tác/partner hay không","Yes","Feature danh mục"
-Dependents,string,"Khách hàng có người phụ thuộc hay không","No","Feature danh mục"
-tenure,integer,"Số tháng khách hàng đã sử dụng dịch vụ","12","Feature số liên tục"
-PhoneService,string,"Khách hàng có sử dụng dịch vụ điện thoại hay không","Yes","Feature danh mục"
-MultipleLines,string,"Khách hàng có nhiều đường line hay không","No phone service","Feature danh mục"
-InternetService,string,"Loại hình internet đang dùng","Fiber optic","Feature danh mục"
-OnlineSecurity,string,"Khách hàng có gói bảo mật trực tuyến không","No","Feature danh mục"
-OnlineBackup,string,"Khách hàng có gói sao lưu trực tuyến không","Yes","Feature danh mục"
-DeviceProtection,string,"Khách hàng có gói bảo vệ thiết bị không","No","Feature danh mục"
-TechSupport,string,"Khách hàng có gói hỗ trợ kỹ thuật không","No","Feature danh mục"
-StreamingTV,string,"Khách hàng có đăng ký truyền hình trực tuyến không","Yes","Feature danh mục"
-StreamingMovies,string,"Khách hàng có đăng ký xem phim trực tuyến không","No","Feature danh mục"
-Contract,string,"Loại hợp đồng thuê bao","Month-to-month","Feature danh mục"
-PaperlessBilling,string,"Khách hàng có sử dụng hóa đơn điện tử không","Yes","Feature danh mục"
-PaymentMethod,string,"Phương thức thanh toán","Electronic check","Feature danh mục"
-MonthlyCharges,float,"Chi phí hàng tháng của khách hàng","89.55","Feature số liên tục"
-TotalCharges,float,"Tổng chi phí tích lũy của khách hàng","1889.5","Feature số liên tục cần kiểm tra dữ liệu rỗng"
-Churn,string,"Trạng thái rời mạng của khách hàng (nhãn mục tiêu)","Yes","Target label, Yes/No"
+column_name,data_type,description,unit,role,available_at,valid_values_or_rules,missing_policy,notes
+"Call  Failure",integer,UNKNOWN - NEED VERIFICATION,count,feature,observation_window,">=0",no_missing,"Column name contains 2 spaces. Likely number of failed calls."
+Complains,integer,UNKNOWN - NEED VERIFICATION,count,feature,observation_window,"0-5 (observed range)",no_missing,Likely number of complaints filed
+"Subscription  Length",integer,UNKNOWN - NEED VERIFICATION,months,feature,observation_window,">=0",no_missing,"Column name contains 2 spaces. Likely subscription duration in months."
+"Charge  Amount",float,UNKNOWN - NEED VERIFICATION,currency,feature,observation_window,">=0",no_missing,"Column name contains 2 spaces. Likely total or average charge amount."
+Seconds of Use,integer,UNKNOWN - NEED VERIFICATION,seconds,feature,observation_window,">=0",no_missing,Likely total seconds of voice/call usage
+Frequency of use,integer,UNKNOWN - NEED VERIFICATION,count,feature,observation_window,">=0",no_missing,Likely number of usage events/sessions
+Frequency of SMS,integer,UNKNOWN - NEED VERIFICATION,count,feature,observation_window,">=0",no_missing,Likely number of SMS sent
+Distinct Called Numbers,integer,UNKNOWN - NEED VERIFICATION,count,feature,observation_window,">=0",no_missing,Likely number of unique phone numbers called
+Age Group,integer,UNKNOWN - NEED VERIFICATION,ordinal_category,feature,static,"1-5 (observed)",no_missing,"Ordinal categorical. Distribution: 3(45.2%), 2(32.9%), 4(12.5%), 5(5.4%), 1(3.9%)"
+Tariff Plan,integer,UNKNOWN - NEED VERIFICATION,nominal_category,feature,static,"1-2 (observed)",no_missing,"Nominal categorical. Distribution: 1(92.2%), 2(7.8%). Highly imbalanced."
+Status,integer,UNKNOWN - NEED VERIFICATION,nominal_category,feature,UNKNOWN,"1-2 (observed)",no_missing,"⚠️ POTENTIAL LEAKAGE RISK. Distribution: 1(75.2%), 2(24.8%). Investigate correlation with Churn before using."
+Age,integer,UNKNOWN - NEED VERIFICATION,years,feature,static,">=0",no_missing,"Actual age in years. May be redundant with Age Group. Min-max analysis needed."
+Customer Value,float,UNKNOWN - NEED VERIFICATION,UNKNOWN,feature,UNKNOWN,">0 (continuous)",no_missing,"⚠️ 99.9% unique (3148/3150). May be customer ID or CLV metric. Investigate before using."
+Churn,integer,Target variable indicating customer churn status,binary,target,outcome_window,"0 (no churn), 1 (churn)",no_missing,"Binary target. Distribution: 0(84.3%), 1(15.7%). Moderate class imbalance."

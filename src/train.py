@@ -11,11 +11,15 @@ from sklearn.model_selection import train_test_split
 
 from data import (
     TARGET_COLUMN,
+    basic_cleaning,
     build_train_validation_split,
-    clean_telco_data,
+    check_duplicates,
+    check_invalid_values,
+    check_missing,
     compare_columns_against_dictionary,
     load_raw_data,
     summarize_dataset,
+    validate_schema,
 )
 
 
@@ -64,11 +68,16 @@ def run_eda(train_df: pd.DataFrame, output_dir: str | Path = "reports/figures") 
 
     # Plot 3: numeric distributions
     numeric_cols = train_df.select_dtypes(include=["number"]).columns.tolist()
-    if "customerID" in numeric_cols:
-        numeric_cols.remove("customerID")
+    # Remove target from numeric distributions
+    if TARGET_COLUMN in numeric_cols:
+        numeric_cols.remove(TARGET_COLUMN)
+    
     if numeric_cols:
-        fig, axes = plt.subplots(len(numeric_cols), 1, figsize=(10, 3 * max(len(numeric_cols), 1)))
-        for ax, col in zip(axes, numeric_cols):
+        n_cols_to_plot = min(len(numeric_cols), 10)  # Limit to 10 plots
+        fig, axes = plt.subplots(n_cols_to_plot, 1, figsize=(10, 3 * n_cols_to_plot))
+        if n_cols_to_plot == 1:
+            axes = [axes]
+        for ax, col in zip(axes, numeric_cols[:n_cols_to_plot]):
             sns.histplot(train_df[col], bins=30, kde=True, ax=ax)
             ax.set_title(f"Distribution of {col}")
         fig.tight_layout()
@@ -79,11 +88,14 @@ def run_eda(train_df: pd.DataFrame, output_dir: str | Path = "reports/figures") 
     cat_cols = [
         col
         for col in train_df.columns
-        if col not in {TARGET_COLUMN, "customerID"} and train_df[col].dtype == "object"
+        if col not in {TARGET_COLUMN} and train_df[col].dtype in ["object", "int64"] and train_df[col].nunique() <= 10
     ]
     if cat_cols:
-        fig, axes = plt.subplots(min(len(cat_cols), 4), 1, figsize=(10, 4 * min(len(cat_cols), 4)))
-        for ax, col in zip(axes, cat_cols[: min(len(cat_cols), 4)]):
+        n_cats_to_plot = min(len(cat_cols), 5)  # Limit to 5 categorical plots
+        fig, axes = plt.subplots(n_cats_to_plot, 1, figsize=(10, 4 * n_cats_to_plot))
+        if n_cats_to_plot == 1:
+            axes = [axes]
+        for ax, col in zip(axes, cat_cols[:n_cats_to_plot]):
             churn_rate = (
                 train_df.groupby(col)[TARGET_COLUMN]
                 .mean()
@@ -102,7 +114,8 @@ def run_eda(train_df: pd.DataFrame, output_dir: str | Path = "reports/figures") 
 
 
 def main() -> None:
-    raw_path = "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    # Iranian Churn Dataset
+    raw_path = "data/raw/Customer Churn.csv"
     dictionary_path = "data/data_dictionary.csv"
 
     raw_df = load_raw_data(raw_path)
@@ -114,7 +127,7 @@ def main() -> None:
         else:
             print(f"- {key}: none")
 
-    cleaned_df = clean_telco_data(raw_df)
+    cleaned_df = basic_cleaning(raw_df)
     train_df, valid_df, test_df = build_train_validation_split(cleaned_df, target_col=TARGET_COLUMN)
 
     print("\nTrain shape:", train_df.shape)
