@@ -9,13 +9,13 @@
 - Duplicate content: 300 excess rows across 165 groups; retained by default
 - Technical identity: `row_id` is added by `load_raw_data()` from stable source-row order and is not written into the raw file
 
-The repository does not contain a ZIP/source artifact, download script, or transformation script that explains the origin of the checked-in CSV. Source URL, license/citation, and the precise feature definitions remain pending authoritative verification.
+Official source: UCI Machine Learning Repository, Iranian Churn dataset (ID 563): https://archive.ics.uci.edu/dataset/563/iranian+churn+dataset. DOI: https://doi.org/10.24432/C5JW3Z. UCI reports 3,150 instances, 13 features and no missing values. Repository download date is not recorded.
+
+Citation: *Iranian Churn [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5JW3Z.* UCI currently lists the dataset under CC BY 4.0; usage must retain appropriate attribution.
 
 ## Prediction point
 
-The course specification describes using information from the first nine months to predict churn in the following three months. The CSV has no timestamps. Feature availability must therefore be justified from metadata, not inferred from correlation.
-
-`Status` and `Customer Value` do not have sufficient definition/lineage evidence in this repository. They remain pending verification and are excluded from the default model feature list.
+UCI states that every attribute except `Churn` is aggregated from the first nine months; churn is the customer state at the end of month 12, with a three-month planning gap. `Status` is defined as 1=active and 2=non-active. `Customer Value` is defined as the calculated value of the customer. This establishes temporal availability for both features, although UCI does not publish the exact Customer Value formula on the dataset page.
 
 ## Checksum and provenance
 
@@ -28,7 +28,7 @@ The checkout uses CRLF line endings. Normalizing only those line endings to LF p
 | Same checkout bytes normalized to LF | MD5 | `07311e7080c0fb5b0ce94f5977abc4d5` | Matches supplied reference MD5 |
 | Same checkout bytes normalized to LF | SHA256 | `72a4a660cba4166bab4f0c24e930d5453d1917e208c9ce2ed16b841347350dd3` | Recomputed locally |
 
-The byte-level checksum difference is therefore explained by LF/CRLF conversion. Parsing still yields the same 3,150 rows and stable `row_id`/split membership, so no new split is created. This does not independently verify the original download URL, license or citation; those provenance items remain pending.
+The byte-level checksum difference is therefore explained by LF/CRLF conversion. Parsing still yields the same 3,150 rows and stable `row_id`/split membership, so no new split is created.
 
 ## Reproducible workflow
 

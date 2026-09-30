@@ -1,212 +1,201 @@
 # Week 3 Analysis — Sơn
 
-Phạm vi review: snapshot mới nhất `origin/Thang` tại `7e3be82d`, gồm implementation ở `2d26f433` và `402f4fb5`. Branch hiện tại `Son` chưa tích hợp các commit này, vì vậy review được thực hiện read-only bằng `git show` và một snapshot tạm; không checkout, merge, commit, push hoặc đánh giá test set.
+Phạm vi: chỉnh Week 3 để khớp đề giảng viên. Không làm Week 4, không đánh giá test, không chọn threshold cuối, không merge/cherry-pick, không commit/push và không sửa lịch sử Git.
 
-## 1. Mục tiêu
+## 1. Assignment alignment
 
-Hoàn thiện phần Week 3 cá nhân của Sơn: audit feature set, review preprocessing và kết quả validation/CV của Thắng, kiểm tra leakage theo prediction point, bổ sung tests thuộc phạm vi Sơn và ghi rõ các blocker còn mở. Feature set/model candidate không được gọi là final và test set tiếp tục được giữ đóng.
+Bài toán là binary classification bằng Logistic Regression, đầu ra là xác suất churn. Vòng thí nghiệm dùng split cố định, 5-fold StratifiedGroupKFold chỉ trên train, seed 42 và cùng folds cho sáu cấu hình C ∈ {0.1, 1, 10} × class_weight ∈ {None, balanced}. Toàn bộ imputer, scaler và encoder được fit trong fold-train. Candidate được chọn bằng mean train-CV PR_AUC; validation chỉ dùng để báo cáo candidate đã chọn. Test không được dự đoán.
 
-## 2. Feature audit
+B0 constant-probability baseline và B1 Logistic Regression baseline cũng được regenerate trên 13 features. B0 dùng train churn rate 0.157143; B1 dùng class_weight=None, C=1. Validation B1 đạt PR_AUC 0.747328, AP 0.748422, ROC_AUC 0.934781 và Brier 0.070479. Các baseline không thay đổi candidate selection rule.
 
-Prediction point theo đề: dùng thông tin chín tháng đầu để dự đoán churn trong ba tháng sau.
+## 2. Dataset provenance
 
-| Feature | data_type | role | available_at | Current status | Reason |
-|---|---|---|---|---|---|
-| Call  Failure | integer | feature | observation_window | USED | Có trong whitelist 11 feature; metadata chính thức vẫn cần bổ sung |
-| Complains | integer/binary observed | feature | observation_window | USED | Được xử lý categorical; không giả định khoảng cách số |
-| Subscription  Length | integer | feature | observation_window | USED | Có trong whitelist; định nghĩa/unit chính thức còn caveat |
-| Charge  Amount | integer | feature | observation_window | USED | Có trong whitelist; aggregation definition còn caveat |
-| Seconds of Use | integer | feature | observation_window | USED | Có trong whitelist |
-| Frequency of use | integer | feature | observation_window | USED | Có trong whitelist |
-| Frequency of SMS | integer | feature | observation_window | USED | Có trong whitelist |
-| Distinct Called Numbers | integer | feature | observation_window | USED | Có trong whitelist |
-| Age Group | integer/category | feature | static | USED | One-hot để không ép quan hệ tuyến tính/đều khoảng |
-| Tariff Plan | integer/category | feature | static | USED | Mã danh mục, được one-hot |
-| Age | integer | feature | static | USED | Có trong whitelist; reference date còn caveat |
-| Status | integer/category | feature | UNKNOWN | PENDING | Không có định nghĩa hoặc thời điểm cập nhật đáng tin cậy |
-| Customer Value | float | feature | UNKNOWN | PENDING | Không có công thức, input window hoặc calculation time |
-| Churn | integer | target | outcome_window | EXCLUDED | Target, không được có trong X |
-| row_id | integer | technical | load time | EXCLUDED | Chỉ dùng kiểm chứng split |
+- Dataset: Iranian Churn Dataset.
+- Nguồn chính thức: UCI Machine Learning Repository, dataset ID 563.
+- Trang nguồn: https://archive.ics.uci.edu/dataset/563/iranian+churn+dataset
+- DOI: https://doi.org/10.24432/C5JW3Z
+- Citation: Iranian Churn [Dataset]. (2020). UCI Machine Learning Repository.
+- Quy mô: 3.150 khách hàng, 13 features, không missing theo UCI.
+- Raw file trong repo: data/raw/Customer Churn.csv.
+- UCI hiện ghi license CC BY 4.0; ngày tải file vào repository không được ghi nhận.
 
-`CONFIRMED_MODEL_FEATURES` có 11 biến. `PENDING_VERIFICATION_FEATURES` gồm `Status` và `Customer Value`. Cấu hình thí nghiệm và `model_inputs()` khớp với danh sách này.
+UCI nêu mọi thuộc tính ngoài Churn được tổng hợp từ chín tháng đầu; Churn là trạng thái cuối tháng 12, tạo planning gap ba tháng.
 
-## 3. Status decision
+## 3. Feature audit
 
-**STATUS DECISION: UNRESOLVED — SOURCE VERIFICATION REQUIRED**
+| Feature | Type xử lý | Availability | Week 3 decision |
+|---|---|---|---|
+| Call Failure | numeric | first-nine-month aggregate | KEEP |
+| Complains | categorical | first-nine-month aggregate | KEEP |
+| Subscription Length | numeric | first-nine-month aggregate | KEEP |
+| Charge Amount | numeric | first-nine-month aggregate | KEEP |
+| Seconds of Use | numeric | first-nine-month aggregate | KEEP |
+| Frequency of use | numeric | first-nine-month aggregate | KEEP |
+| Frequency of SMS | numeric | first-nine-month aggregate | KEEP |
+| Distinct Called Numbers | numeric | first-nine-month aggregate | KEEP |
+| Age Group | categorical | first-nine-month aggregate | KEEP |
+| Tariff Plan | categorical | first-nine-month aggregate | KEEP |
+| Status | categorical | first-nine-month aggregate | KEEP |
+| Age | numeric | first-nine-month aggregate | KEEP |
+| Customer Value | numeric | first-nine-month aggregate | KEEP |
+| Churn | target | outcome at month 12 | EXCLUDE FROM X |
+| row_id | technical | loader identity | EXCLUDE FROM X |
 
-Repository không có định nghĩa chính thức, không xác nhận `Status` thuộc observation window và không chứng minh biến không dùng trạng thái hậu churn.
+Feature decisions dựa trên temporal metadata, không dựa trên correlation, uniqueness hay model performance.
 
-Thống kê train chỉ mang tính mô tả:
+## 4. Status decision
 
-- Status 1: 1.427 mẫu; Status 2: 463 mẫu.
-- Cross-tab: Status 1 có 1.347 non-churn và 80 churn; Status 2 có 246 non-churn và 217 churn.
-- Churn rate: 5,61% ở Status 1 và 46,87% ở Status 2.
-- Pearson association với Churn: khoảng 0,488.
+STATUS DECISION: KEEP.
 
-Association mạnh không xác định thời điểm feature có sẵn. `Status` tiếp tục bị loại khỏi model.
+UCI định nghĩa Status là 1=active, 2=non-active và đồng thời đặt mọi non-target attribute trong cửa sổ chín tháng đầu. Vì vậy biến có trước prediction point và không được mô tả là sử dụng nhãn churn tháng 12. Association cao với Churn không được dùng làm bằng chứng KEEP hoặc DROP.
 
-## 4. Customer Value decision
+## 5. Customer Value decision
 
-**CUSTOMER VALUE DECISION: UNRESOLVED — SOURCE VERIFICATION REQUIRED**
+CUSTOMER VALUE DECISION: KEEP.
 
-Không có công thức hoặc bằng chứng rằng biến chỉ dùng dữ liệu chín tháng đầu. Không thể xác nhận đây là derived metric hợp lệ hay loại trừ future/outcome information.
+UCI định nghĩa Customer Value là calculated value of customer và xác nhận mọi non-target attribute được tổng hợp trong chín tháng đầu. Điều này đủ để xác nhận temporal availability. Trang dataset công khai không nêu công thức chi tiết, nên công thức vẫn là caveat về diễn giải; không phải bằng chứng future leakage.
 
-Thống kê train chỉ mang tính mô tả:
+## 6. Final feature set
 
-- 1.623 giá trị unique trên 1.890 dòng, unique ratio 85,87%.
-- Mean 470,67; median 228,48; min 0; max 2.148,03.
-- Mean ở non-churn 534,59 và churn 127,80.
-- Correlation với Churn khoảng -0,289.
-- Association tuyệt đối lớn nhất với `Frequency of SMS` khoảng 0,920.
+Feature set Week 3 là FINAL với 13 biến:
 
-Uniqueness, distribution và correlation không chứng minh identifier/non-identifier hoặc temporal safety. Biến tiếp tục bị loại khỏi model.
+Call Failure, Complains, Subscription Length, Charge Amount, Seconds of Use, Frequency of use, Frequency of SMS, Distinct Called Numbers, Age Group, Tariff Plan, Status, Age, Customer Value.
 
-## 5. Provisional feature set
+So với run cũ, feature set đổi từ 11 lên 13 biến. Status và Customer Value đã được thêm vào src/features.py; toàn bộ CV, selection, validation và artifacts được regenerate. Churn và row_id vẫn bị loại khỏi X.
 
-Week 3 giữ nguyên 11 biến trong `CONFIRMED_MODEL_FEATURES`. `Status` và `Customer Value` tiếp tục nằm trong `PENDING_VERIFICATION_FEATURES`; `Churn` là target và `row_id` là technical identity. Đây là **provisional Week 3 feature set**, không phải feature set final. Nếu nhóm sau này xác nhận KEEP một pending feature, toàn bộ CV và candidate selection Week 3 phải được chạy lại trước khi chấp nhận candidate.
+## 7. Preprocessing review
 
-## 6. Preprocessing review
+PREPROCESSING REVIEW = PASS.
 
-- Numeric: Call Failure, Subscription Length, Charge Amount, Seconds of Use, Frequency of use, Frequency of SMS, Distinct Called Numbers, Age.
-- Categorical: Complains, Age Group, Tariff Plan.
-- `Complains` là indicator 0/1 trong dữ liệu; xử lý categorical là hợp lý và tránh giả định khoảng cách liên tục.
-- `Age Group` one-hot là lựa chọn thận trọng khi mapping/ordinal spacing chưa được xác minh.
-- `Tariff Plan` phải được coi là nominal; one-hot phù hợp.
-- Dataset hiện không missing nên imputer không thay đổi train data. Giữ imputer trong pipeline vẫn hợp lý cho robustness và không gây leakage vì nó fit trong fold-train.
-- Median imputer + StandardScaler cho numeric và most-frequent imputer + OneHotEncoder cho categorical đều nằm trong `Pipeline`/`ColumnTransformer` và được fit lại ở mỗi CV fold.
-- `handle_unknown="ignore"` xử lý unseen category mà không refit.
-- Validation chỉ được transform/predict; test được unpack thành `_` và không được dự đoán trong scripts Week 3.
+- Numeric: median imputer rồi StandardScaler.
+- Categorical: Complains, Age Group, Tariff Plan, Status; most-frequent imputer rồi OneHotEncoder(handle_unknown="ignore").
+- Pipeline được fit mới trong từng fold-train.
+- Fold-heldout và validation chỉ transform/predict, không refit.
+- Unseen category được ignore, không học lại encoder.
+- Test không tham gia fit, feature/model selection hoặc reporting.
 
-Không đề xuất đổi preprocessing ở vòng này.
-
-## 7. class_weight analysis
+## 8. class_weight analysis
 
 So sánh cô lập tại C=1:
 
-| class_weight | AP mean ± std | ROC-AUC mean ± std | Brier mean ± std | Precision mean ± std | Recall mean ± std | F1 mean ± std |
-|---|---:|---:|---:|---:|---:|---:|
-| None | 0,7357 ± 0,0710 | 0,9208 ± 0,0237 | 0,0740 ± 0,0109 | 0,8742 ± 0,1165 | 0,4178 ± 0,1206 | 0,5544 ± 0,1083 |
-| balanced | 0,7274 ± 0,0746 | 0,9207 ± 0,0238 | 0,1195 ± 0,0169 | 0,4482 ± 0,0312 | 0,8892 ± 0,0709 | 0,5943 ± 0,0275 |
-
-Unweighted ưu tiên precision và có Brier thấp hơn, nhưng bỏ sót nhiều churn hơn. Balanced tăng recall mạnh, đổi lại precision giảm, false-positive workload tăng và xác suất kém calibration hơn. Không có lựa chọn tốt hơn tuyệt đối: đội chăm sóc hạn chế phù hợp hơn với precision cao; mục tiêu giảm bỏ sót phù hợp hơn với recall cao. Threshold 0,5 chỉ là tạm thời và không được tối ưu ở Week 3.
-
-## 8. C analysis
-
-C nhỏ tương ứng regularization mạnh hơn; C lớn tương ứng regularization yếu hơn.
-
-| class_weight | C | AP mean ± std | ROC-AUC mean | Brier mean | Precision mean | Recall mean | F1 mean |
+| class_weight | PR_AUC mean ± std | AP mean ± std | ROC_AUC mean | Brier mean | Precision mean | Recall mean | F1 mean |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| None | 0,1 | 0,7261 ± 0,0765 | 0,9162 | 0,0765 | 0,8990 | 0,4008 | 0,5465 |
-| None | 1 | 0,7357 ± 0,0710 | 0,9208 | 0,0740 | 0,8742 | 0,4178 | 0,5544 |
-| None | 10 | 0,7390 ± 0,0657 | 0,9226 | 0,0739 | 0,8501 | 0,4178 | 0,5508 |
-| balanced | 0,1 | 0,7214 ± 0,0787 | 0,9174 | 0,1235 | 0,4441 | 0,8858 | 0,5903 |
-| balanced | 1 | 0,7274 ± 0,0746 | 0,9207 | 0,1195 | 0,4482 | 0,8892 | 0,5943 |
-| balanced | 10 | 0,7306 ± 0,0719 | 0,9216 | 0,1195 | 0,4481 | 0,8858 | 0,5936 |
+| None | 0.742968 ± 0.067981 | 0.745753 ± 0.067056 | 0.929018 | 0.072627 | 0.806210 | 0.441186 | 0.560666 |
+| balanced | 0.737933 ± 0.071805 | 0.740859 ± 0.070755 | 0.930645 | 0.111111 | 0.492276 | 0.885650 | 0.631505 |
 
-C=10 unweighted được **selected by mean CV AP**. Chênh lệch AP giữa C=10 và C=1 chỉ khoảng 0,0033, nhỏ hơn nhiều so với fold standard deviation khoảng 0,066–0,071. Vì vậy không có bằng chứng rằng C=10 chắc chắn vượt trội; đây chỉ là ứng viên theo quy tắc selection đã công bố.
+Balanced tăng recall nhưng giảm precision và làm Brier xấu hơn. Không có lựa chọn tốt tuyệt đối về business cost; theo metric selection chính, unweighted tốt hơn tại C=1. Threshold 0.5 chỉ dùng để báo cáo, không phải threshold cuối.
 
-## 9. Candidate review
+## 9. C analysis
 
-- Model: LogisticRegression.
-- class_weight: None.
-- C: 10.
-- Selection: mean AP cao nhất trong CV train; không chọn lại bằng validation.
-- Threshold 0,5: tạm thời.
-- Status: provisional vì metadata của dataset và hai pending features chưa được xác minh.
-- Model được fit trên train, không fit train+validation và không đánh giá test.
+| class_weight | C | PR_AUC mean ± std | AP mean ± std | ROC_AUC mean | Brier mean |
+|---|---:|---:|---:|---:|---:|
+| None | 0.1 | 0.726344 ± 0.068166 | 0.729622 ± 0.066907 | 0.924767 | 0.075001 |
+| None | 1 | 0.742968 ± 0.067981 | 0.745753 ± 0.067056 | 0.929018 | 0.072627 |
+| None | 10 | 0.752463 ± 0.069578 | 0.755157 ± 0.068643 | 0.931712 | 0.071827 |
+| balanced | 0.1 | 0.718777 ± 0.067492 | 0.722202 ± 0.066302 | 0.926279 | 0.114568 |
+| balanced | 1 | 0.737933 ± 0.071805 | 0.740859 ± 0.070755 | 0.930645 | 0.111111 |
+| balanced | 10 | 0.745701 ± 0.070387 | 0.748578 ± 0.069352 | 0.932734 | 0.109759 |
 
-## 10. Validation metrics
+C=10 có mean PR_AUC cao nhất trong cả hai nhóm weight, nhưng chênh lệch giữa cấu hình nhỏ hơn fold variability; kết quả là selection theo rule đã khai báo, không phải khẳng định chắc chắn về superiority.
+
+## 10. AP analysis
+
+AP là Average Precision, tức weighted mean của precision theo các bước tăng recall. AP được giữ như metric phụ, tách biệt với PR_AUC. Candidate có train-CV AP 0.755157 ± 0.068643 và validation AP 0.761101.
+
+## 11. PR_AUC analysis
+
+PR_AUC là diện tích dưới precision-recall curve bằng trapezoidal integration trên recall tăng dần. Đây là metric selection chính theo đề. AP và PR_AUC cùng được tính nhưng không bị đồng nhất. Candidate có train-CV PR_AUC 0.752463 ± 0.069578 và validation PR_AUC 0.760070.
+
+## 12. ROC_AUC
+
+Candidate đạt train-CV ROC_AUC 0.931712 ± 0.020389 và validation ROC_AUC 0.936493. ROC_AUC là metric báo cáo, không dùng để đổi candidate sau selection.
+
+## 13. Brier
+
+Candidate đạt train-CV Brier 0.071827 ± 0.011535 và validation Brier 0.069941. Unweighted có Brier tốt hơn balanced trong grid này. Brier thấp hơn không thay thế calibration-curve review.
+
+## 14. Candidate selection
+
+OLD CANDIDATE: LogisticRegression, class_weight=None, C=10, được chọn trước đây bằng mean CV Average Precision trên feature set 11 biến.
+
+NEW PR_AUC-BASED CANDIDATE: LogisticRegression, class_weight=None, C=10, được chọn bằng highest mean train-CV PR_AUC trên feature set 13 biến. Tie-break deterministic: giữ cấu hình xuất hiện trước trong declared order nếu cách best không quá 1e-6.
+
+Candidate unchanged after aligning selection metric with assignment, nhưng model artifact và metrics đã thay đổi vì Status và Customer Value được thêm vào. Validation không được dùng để chọn lại candidate.
+
+## 15. Validation metrics
 
 | Metric | Value |
 |---|---:|
-| AP | 0,763925 |
-| ROC-AUC | 0,933449 |
-| Brier | 0,070677 |
-| Precision | 0,884615 |
-| Recall | 0,464646 |
-| F1 | 0,609272 |
-| Predicted positive | 52 |
-| TN | 525 |
-| FP | 6 |
+| PR_AUC | 0.760070 |
+| AP | 0.761101 |
+| ROC_AUC | 0.936493 |
+| Brier | 0.069941 |
+| Precision | 0.807018 |
+| Recall | 0.464646 |
+| F1 | 0.589744 |
+| Predicted positive | 57 |
+| TN | 520 |
+| FP | 11 |
 | FN | 53 |
 | TP | 46 |
 
-Candidate xếp hạng tốt trên validation và tại threshold tạm 0,5 thiên về precision hơn recall. FP là sáu khách không churn nhưng bị cảnh báo, làm tăng workload chăm sóc. FN là 53 khách churn nhưng không được cảnh báo, thể hiện chi phí bỏ sót đáng kể. Không thay threshold trong Week 3.
+Đây là validation 630 mẫu, không phải test.
 
-## 11. Confusion matrix interpretation
+## 16. Confusion matrix
 
-Ma trận validation xác nhận TN=525, FP=6, FN=53, TP=46. Số false negative cao hơn false positive phù hợp với precision 0,885 và recall 0,465: model phát cảnh báo khá thận trọng. Đây không phải confusion matrix test.
+Ở threshold tạm 0.5: TN=520, FP=11, FN=53, TP=46. Model cảnh báo khá thận trọng: precision khoảng 0.807 nhưng chỉ bắt được khoảng 46.5% churn. False negatives lớn hơn false positives; Week 3 không dùng quan sát này để tối ưu threshold.
 
-## 12. Calibration interpretation
+## 17. Calibration
 
-Candidate có Brier 0,0707, gần B1 C=1 và tốt hơn balanced C=1 (0,1121) trên validation. Các bin candidate:
+Validation Brier là 0.069941. Candidate calibration bins:
 
 | Bin | Count | Mean probability | Observed churn rate |
 |---:|---:|---:|---:|
-| 0 | 414 | 0,0166 | 0,0145 |
-| 1 | 37 | 0,1401 | 0,2162 |
-| 2 | 45 | 0,2521 | 0,2444 |
-| 3 | 67 | 0,3548 | 0,2985 |
-| 4 | 15 | 0,4449 | 0,5333 |
-| 5 | 8 | 0,5542 | 0,8750 |
-| 6 | 1 | 0,6931 | 1,0000 |
-| 7 | 2 | 0,7411 | 1,0000 |
-| 8 | 3 | 0,8326 | 0,6667 |
-| 9 | 38 | 0,9612 | 0,8947 |
+| 0 | 412 | 0.0152 | 0.0170 |
+| 1 | 47 | 0.1485 | 0.0851 |
+| 2 | 32 | 0.2414 | 0.2188 |
+| 3 | 38 | 0.3554 | 0.3158 |
+| 4 | 44 | 0.4385 | 0.5227 |
+| 5 | 10 | 0.5669 | 0.5000 |
+| 6 | 4 | 0.6233 | 0.7500 |
+| 7 | 0 | — | — |
+| 8 | 6 | 0.8388 | 0.8333 |
+| 9 | 37 | 0.9653 | 0.8919 |
 
-Bin 0 có nhiều mẫu và bám khá sát đường lý tưởng. Các bin 5–8 chỉ có 1–8 mẫu nên dao động lớn và không được overclaim. Bin xác suất cao nhất có xu hướng dự báo cao hơn observed rate. Balanced curve lệch dưới đường lý tưởng ở nhiều bin trung/cao, phù hợp với Brier kém hơn. Không fit Platt/Isotonic trong Week 3.
+Bin 0 có nhiều mẫu và khá sát ideal. Các bin 5, 6 và 8 nhỏ nên không overclaim. Bin cao nhất hơi overconfident. Không fit calibration model ở Week 3.
 
-## 13. Tests trên branch Son
+## 18. Tests
 
-Kết quả `python -m unittest discover -s tests -v` trên branch `Son`:
+Unit test độc lập của Sơn kiểm tra:
 
-- Total: 13.
-- Passed: 9.
-- Failed: 0.
-- Skipped: 4.
+- final 13-feature eligibility; target/technical không vào X;
+- AP và true PR_AUC đều finite, nằm trong [0,1] và được trả về riêng;
+- split/data invariants của Week 2.
 
-Chín unit tests chạy trực tiếp gồm tám test data/split Week 2 và một test eligibility của Sơn xác nhận 11 confirmed features loại target, technical và pending features.
+Bốn integration tests kiểm tra no-refit preprocessing, bounded probabilities, grouped CV overlap và test_evaluated=false. Trên branch Son chúng conditional skip vì implementation runner của Thắng không được copy/merge.
 
-`tests/test_son_week3.py` bổ sung bốn assertion còn thiếu:
+- Branch Son: 14 total, 10 passed, 0 failed, 4 skipped.
+- Isolated snapshot có implementation Thắng và feature set mới: 17 total, 17 passed, 0 failed, 0 skipped.
 
-1. Encoder categories và scaler mean không đổi sau validation prediction.
-2. Validation probabilities finite và thuộc [0,1].
-3. CV fold không overlap `row_id` hoặc duplicate content.
-4. Config ghi `test_evaluated=false` và validation artifacts có đúng validation size.
+## 19. Remaining blockers
 
-Các integration test sau được skip có điều kiện, cùng lý do rõ ràng: implementation Week 3 đang ở `origin/Thang` và chưa được tích hợp vào branch `Son`.
+Không còn blocker làm thay đổi feature set hoặc candidate Week 3.
 
-- `test_encoder_and_scaler_are_not_refit_during_validation_prediction`
-- `test_validation_probabilities_are_finite_and_bounded`
-- `test_train_cv_folds_have_no_row_or_duplicate_content_overlap`
-- `test_artifacts_explicitly_record_test_as_untouched`
+Caveat còn lại:
 
-Skip này hợp lệ cho phần cá nhân của Sơn và không bị tính là test failure. Bốn test đã pass khi chạy trên snapshot tạm có code Thắng.
+- Ngày tải raw file vào repo không được ghi nhận.
+- Công thức chi tiết Customer Value chưa được công bố trên trang UCI, nên không diễn giải sâu cơ chế tạo biến.
+- Runner/pipeline của Thắng chưa được tích hợp vào branch Son theo đúng yêu cầu không merge/cherry-pick; artifacts rerun được tạo từ isolated snapshot, không dùng test.
 
-## 14. Dataset provenance/checksum
+## 20. Week 4 handoff
 
-- Dataset đang dùng: Iranian Churn Dataset.
-- Raw file: `data/raw/Customer Churn.csv`, 3.150 dòng.
-- Checkout Windows dùng 3.151 CRLF line endings.
-- Exact checkout MD5: `e5362c3e5787dadd4e21eb606509bc03`.
-- Exact checkout SHA256: `90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1`, khớp config Week 3 của Thắng.
-- Chuẩn hóa đúng CRLF → LF cho cùng bytes tạo MD5 `07311e7080c0fb5b0ce94f5977abc4d5`, khớp checksum tham chiếu được cung cấp; LF SHA256 là `72a4a660cba4166bab4f0c24e930d5453d1917e208c9ce2ed16b841347350dd3`.
-- Khác biệt byte-level được giải thích bởi line ending, không phải thay đổi record. Parsing, 3.150 `row_id` và split 1.890/630/630 không đổi; không tạo split mới.
-- URL tải gốc, license và citation vẫn chưa có nguồn authoritative trong repository, nên provenance nguồn chưa hoàn toàn đóng.
+Week 3 của Sơn đã đủ để handoff: 13-feature set đã chốt theo official temporal metadata; primary metric là PR_AUC; candidate và validation artifacts đã regenerate; test vẫn đóng. Nhóm cần tích hợp code theo workflow được phê duyệt và chạy lại full integration suite trên branch chung trước Week 4. Không có hoạt động Week 4 trong thay đổi này.
 
-## 15. Remaining blockers
+## Checksum note
 
-- `Status` chưa có định nghĩa và availability chính thức.
-- `Customer Value` chưa có công thức/calculation window chính thức.
-- Source URL, license và citation chưa được xác minh chính thức.
-- Candidate vì vậy chỉ là provisional, không phải final model.
-- Code/artifact Thắng chưa được tích hợp vào branch chung; việc này không chặn hoàn thành cá nhân của Sơn nhưng cần trước handoff nhóm.
+- Exact CRLF checkout MD5: e5362c3e5787dadd4e21eb606509bc03.
+- Exact CRLF checkout SHA256: 90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1.
+- LF-normalized MD5: 07311e7080c0fb5b0ce94f5977abc4d5.
+- LF-normalized SHA256: 72a4a660cba4166bab4f0c24e930d5453d1917e208c9ce2ed16b841347350dd3.
 
-## 16. Handoff cho nhóm / Week 4
-
-Chưa thực hiện Week 4. Trước khi bắt đầu cần:
-
-1. Người phụ trách tích hợp commit Thắng vào branch chung bằng workflow được nhóm phê duyệt.
-2. Chạy toàn bộ unit/integration tests sau tích hợp.
-3. Review/đóng các vấn đề metadata nếu có nguồn chính thức; nếu feature set thay đổi phải rerun toàn bộ Week 3.
-4. Giữ test set đóng cho đến một lần đánh giá cuối theo kế hoạch.
+Khác biệt byte-level chỉ do line endings. Logical rows, row_id và frozen split 1.890/630/630 không đổi; không tạo split mới.

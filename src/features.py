@@ -2,7 +2,7 @@
 
 TARGET = "Churn"
 TECHNICAL_COLUMNS = ["row_id"]
-PENDING_VERIFICATION_FEATURES = ["Status", "Customer Value"]
+PENDING_VERIFICATION_FEATURES = []
 
 CONFIRMED_MODEL_FEATURES = [
     "Call  Failure",
@@ -15,7 +15,9 @@ CONFIRMED_MODEL_FEATURES = [
     "Distinct Called Numbers",
     "Age Group",
     "Tariff Plan",
+    "Status",
     "Age",
+    "Customer Value",
 ]
 
 

@@ -1,0 +1,68 @@
+{
+  "status": "assignment_aligned",
+  "seed": 42,
+  "features": [
+    "Call  Failure",
+    "Complains",
+    "Subscription  Length",
+    "Charge  Amount",
+    "Seconds of Use",
+    "Frequency of use",
+    "Frequency of SMS",
+    "Distinct Called Numbers",
+    "Age Group",
+    "Tariff Plan",
+    "Status",
+    "Age",
+    "Customer Value"
+  ],
+  "excluded_pending": [],
+  "excluded_technical": [
+    "row_id",
+    "Churn"
+  ],
+  "classification_threshold": 0.5,
+  "precision_zero_division": 0,
+  "metric_definitions": {
+    "AP": "Average Precision",
+    "PR_AUC": "area under the precision-recall curve by trapezoidal integration"
+  },
+  "python": "3.11.9",
+  "pandas": "3.0.6",
+  "numpy": "2.4.6",
+  "sklearn": "1.9.1",
+  "raw_sha256": "90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1",
+  "CV": "5-fold StratifiedGroupKFold on train only",
+  "search_C": [
+    0.1,
+    1.0,
+    10.0
+  ],
+  "search_class_weight": [
+    null,
+    "balanced"
+  ],
+  "primary_selection_metric": "mean train-CV PR_AUC",
+  "secondary_metric": "Average Precision",
+  "selection_metric": "highest mean train-CV PR_AUC; configuration order breaks ties within 1e-6",
+  "selected": {
+    "run": "B1_C10",
+    "class_weight": "none",
+    "C": 10.0,
+    "AP_mean": 0.7551574213994933,
+    "AP_std": 0.06864297930595105,
+    "PR_AUC_mean": 0.7524633194385545,
+    "PR_AUC_std": 0.0695775848913666,
+    "ROC_AUC_mean": 0.9317124037481216,
+    "ROC_AUC_std": 0.020388637546242153,
+    "Brier_mean": 0.07182745665338851,
+    "Brier_std": 0.011534870788108198,
+    "precision_mean": 0.768422757475083,
+    "precision_std": 0.11406188183839808,
+    "recall_mean": 0.44468926553672317,
+    "recall_std": 0.1246906222807158,
+    "F1_mean": 0.5563666086683989,
+    "F1_std": 0.11577501256288734
+  },
+  "test_evaluated": false
+}

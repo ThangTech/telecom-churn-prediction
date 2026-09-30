@@ -52,7 +52,8 @@ IQR flags are descriptive only. No record is removed automatically: high values 
 
 - `Churn` is the target and is never an input feature.
 - `row_id` is technical and is never an input feature.
-- `Status` and `Customer Value` remain pending verification and are excluded from the default Week 3 feature set.
+- UCI states that every non-target attribute is aggregated from the first nine months. `Status` and `Customer Value` are therefore included in the 13-feature Week 3 set.
+- UCI defines `Status` as active/non-active and `Customer Value` as calculated customer value; its public dataset page does not give the exact Customer Value formula.
 - Statistical association is not evidence that a feature was available before the prediction point.
 
 ## Checksum and provenance
@@ -64,4 +65,5 @@ IQR flags are descriptive only. No record is removed automatically: high values 
 - Same bytes normalized to LF — MD5: `07311e7080c0fb5b0ce94f5977abc4d5`
 - Same bytes normalized to LF — SHA256: `72a4a660cba4166bab4f0c24e930d5453d1917e208c9ce2ed16b841347350dd3`
 - Supplied source/reference MD5: `07311e7080c0fb5b0ce94f5977abc4d5`
-- Result: normalized-LF MD5 exactly matches the supplied reference. The byte-level difference is explained by LF/CRLF conversion; parsed rows, `row_id` assignment and split membership remain unchanged. Source URL, license and download provenance still require authoritative verification.
+- Result: normalized-LF MD5 exactly matches the supplied reference. The byte-level difference is explained by LF/CRLF conversion; parsed rows, `row_id` assignment and split membership remain unchanged.
+- Official source: UCI Machine Learning Repository, Iranian Churn dataset (ID 563), DOI `10.24432/C5JW3Z`; the repository download date is not recorded.
