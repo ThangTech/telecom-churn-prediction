@@ -1,10 +1,34 @@
 # PROJECT 15 - Dự đoán khách hàng viễn thông rời mạng
-# test commit
 ## Giới thiệu
 
 Dự án xây dựng quy trình dự đoán khả năng khách hàng viễn thông rời mạng
 (customer churn). Quy trình dự kiến bao gồm chuẩn bị dữ liệu, tạo đặc trưng,
 huấn luyện mô hình, đánh giá và cung cấp dự đoán qua API.
+
+## Thiết lập môi trường
+
+```bash
+python -m venv .venv
+```
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Kiểm chứng Tuần 2:
+
+```powershell
+python scripts/validate_week2.py
+python -m unittest discover -s tests -v
+python scripts/eda_train.py
+```
+
+`scripts/eda_train.py` là implementation EDA canonical và chỉ phân tích train.
+`Status` và `Customer Value` đang chờ xác minh định nghĩa/thời điểm có dữ liệu,
+nên bị loại khỏi feature set mặc định tại `src/features.py`.
 
 ## Cấu trúc dự án
 
