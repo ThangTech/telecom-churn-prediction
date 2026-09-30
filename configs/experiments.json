@@ -27,7 +27,7 @@
   "PR_summary": "Average Precision (not trapezoidal PR-AUC)",
   "python": "3.13.7",
   "pandas": "3.0.5",
-  "numpy": "2.5.3",
+  "numpy": "2.5.2",
   "sklearn": "1.9.0",
   "raw_sha256": "90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1",
   "CV": "5-fold StratifiedGroupKFold on train only",
