@@ -58,7 +58,10 @@ IQR flags are descriptive only. No record is removed automatically: high values 
 ## Checksum and provenance
 
 - Exact repository artifact hashed: `data/raw/Customer Churn.csv`
-- Algorithm: MD5
+- Checkout line endings: CRLF (3,151 line endings)
 - Repository file MD5: `e5362c3e5787dadd4e21eb606509bc03`
-- Supplied source/reference CSV checksum: `07311e7080c0fb5b0ce94f5977abc4d5`
-- Result: the checksums do not match. No ZIP or alternative source artifact is present in the repository, and no conversion script explaining the difference was found. Provenance verification remains pending; the two hashes are not treated as the same artifact.
+- Repository file SHA256: `90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1`
+- Same bytes normalized to LF — MD5: `07311e7080c0fb5b0ce94f5977abc4d5`
+- Same bytes normalized to LF — SHA256: `72a4a660cba4166bab4f0c24e930d5453d1917e208c9ce2ed16b841347350dd3`
+- Supplied source/reference MD5: `07311e7080c0fb5b0ce94f5977abc4d5`
+- Result: normalized-LF MD5 exactly matches the supplied reference. The byte-level difference is explained by LF/CRLF conversion; parsed rows, `row_id` assignment and split membership remain unchanged. Source URL, license and download provenance still require authoritative verification.
