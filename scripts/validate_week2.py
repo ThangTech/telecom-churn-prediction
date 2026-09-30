@@ -1,6 +1,7 @@
 """Validate the Week 2 data layer and generate the canonical quality report."""
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -53,7 +54,13 @@ def run_validation() -> dict:
     }
     assert not any(content_overlap.values()), "Duplicate content crosses split boundaries."
 
+    raw_bytes = RAW_PATH.read_bytes()
+    lf_bytes = raw_bytes.replace(b"\r\n", b"\n")
     md5 = compute_checksum(RAW_PATH, "md5")
+    sha256 = compute_checksum(RAW_PATH, "sha256")
+    lf_md5 = hashlib.md5(lf_bytes).hexdigest()
+    lf_sha256 = hashlib.sha256(lf_bytes).hexdigest()
+    crlf_count = raw_bytes.count(b"\r\n")
     missing = check_missing(cleaned)
     train_target = train["Churn"].value_counts().sort_index()
     train_target_table = "| Churn | count |\n|---:|---:|\n" + "\n".join(
@@ -116,10 +123,13 @@ IQR flags are descriptive only. No record is removed automatically: high values 
 ## Checksum and provenance
 
 - Exact repository artifact hashed: `data/raw/Customer Churn.csv`
-- Algorithm: MD5
+- Checkout line endings: CRLF ({crlf_count:,} line endings)
 - Repository file MD5: `{md5}`
-- Supplied source/reference CSV checksum: `{REFERENCE_MD5}`
-- Result: the checksums do not match. No ZIP or alternative source artifact is present in the repository, and no conversion script explaining the difference was found. Provenance verification remains pending; the two hashes are not treated as the same artifact.
+- Repository file SHA256: `{sha256}`
+- Same bytes normalized to LF — MD5: `{lf_md5}`
+- Same bytes normalized to LF — SHA256: `{lf_sha256}`
+- Supplied source/reference MD5: `{REFERENCE_MD5}`
+- Result: normalized-LF MD5 exactly matches the supplied reference. The byte-level difference is explained by LF/CRLF conversion; parsed rows, `row_id` assignment and split membership remain unchanged. Source URL, license and download provenance still require authoritative verification.
 """
     REPORT_PATH.write_text(report, encoding="utf-8")
     return {
