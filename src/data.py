@@ -1,241 +1,199 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
+from pandas.api.types import is_integer_dtype, is_numeric_dtype, is_object_dtype, is_string_dtype
 
 TARGET_COLUMN = "Churn"
+ROW_ID_COLUMN = "row_id"
+RANDOM_STATE = 42
 
-# Iranian Churn Dataset expected columns
-# Note: Some column names contain extra whitespace in the raw CSV
-DEFAULT_EXPECTED_COLUMNS = [
-    "Call  Failure",           # Note: 2 spaces between "Call" and "Failure"
-    "Complains",
-    "Subscription  Length",    # Note: 2 spaces between "Subscription" and "Length"
-    "Charge  Amount",          # Note: 2 spaces between "Charge" and "Amount"
-    "Seconds of Use",
-    "Frequency of use",
-    "Frequency of SMS",
-    "Distinct Called Numbers",
-    "Age Group",
-    "Tariff Plan",
-    "Status",
-    "Age",
-    "Customer Value",
-    TARGET_COLUMN,
-]
+DICTIONARY_REQUIRED_FIELDS = {"column_name", "data_type", "description", "role"}
+VALID_ROLES = {"feature", "target"}
+VALID_DATA_TYPES = {"integer", "float", "numeric", "string", "category", "boolean"}
 
-# Column name normalization mapping (original → normalized)
-# Preserves original names but documents whitespace anomalies
-COLUMN_NAME_MAPPING = {
-    "Call  Failure": "Call  Failure",              # Preserved as-is
-    "Subscription  Length": "Subscription  Length", # Preserved as-is
-    "Charge  Amount": "Charge  Amount",            # Preserved as-is
-}
+
+def compute_checksum(path: str | Path, algorithm: str = "md5") -> str:
+    """Return a checksum for the exact file bytes at *path*."""
+    digest = hashlib.new(algorithm)
+    with Path(path).open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def load_raw_data(path: str | Path) -> pd.DataFrame:
-    """Đọc file CSV dữ liệu thô."""
+    """Read the raw CSV and immediately attach a stable source-row identity."""
     file_path = Path(path)
     if not file_path.exists():
         raise FileNotFoundError(f"Không tìm thấy file dữ liệu tại: {file_path}")
-
     df = pd.read_csv(file_path)
-    df.columns = [str(col).strip() for col in df.columns]
+    df.columns = [str(column).strip() for column in df.columns]
+    if ROW_ID_COLUMN in df.columns:
+        raise ValueError(f"Raw data must not already contain technical column {ROW_ID_COLUMN!r}.")
+    df.insert(0, ROW_ID_COLUMN, np.arange(len(df), dtype="int64"))
     return df
 
 
-def load_dictionary_columns(path: str | Path) -> list[str]:
-    """Đọc danh sách cột từ data_dictionary.csv nếu có."""
+def load_data_dictionary(path: str | Path) -> pd.DataFrame:
+    """Load and validate the dictionary; malformed dictionaries never fall back silently."""
     file_path = Path(path)
     if not file_path.exists():
-        return []
-
+        raise FileNotFoundError(f"Không tìm thấy data dictionary tại: {file_path}")
     dictionary = pd.read_csv(file_path)
-    if "field_name" not in dictionary.columns:
-        return []
-
-    return [str(col).strip() for col in dictionary["field_name"].dropna().tolist()]
-
-
-def compare_columns(df: pd.DataFrame, expected_columns: list[str] | None = None) -> dict[str, list[str]]:
-    """So sánh tên cột thực tế với schema dự kiến."""
-    target_columns = expected_columns or DEFAULT_EXPECTED_COLUMNS
-    actual = list(df.columns)
-
-    missing = [col for col in target_columns if col not in actual]
-    extra = [col for col in actual if col not in target_columns]
-    unexpected_order = [
-        actual[idx]
-        for idx in range(min(len(actual), len(target_columns)))
-        if actual[idx] != target_columns[idx]
-    ]
-
-    return {
-        "expected": target_columns,
-        "actual": actual,
-        "missing": missing,
-        "extra": extra,
-        "unexpected_order": unexpected_order,
+    missing_fields = sorted(DICTIONARY_REQUIRED_FIELDS - set(dictionary.columns))
+    if missing_fields:
+        raise ValueError(f"Data dictionary missing required fields: {missing_fields}")
+    empty_required = {
+        field: int(dictionary[field].isna().sum())
+        for field in DICTIONARY_REQUIRED_FIELDS
+        if dictionary[field].isna().any()
     }
+    if empty_required:
+        raise ValueError(f"Data dictionary contains empty required values: {empty_required}")
+    dictionary = dictionary.copy()
+    dictionary["column_name"] = dictionary["column_name"].astype(str).str.strip()
+    if dictionary["column_name"].eq("").any():
+        raise ValueError("Data dictionary contains an empty column_name.")
+    duplicates = dictionary.loc[dictionary["column_name"].duplicated(keep=False), "column_name"].unique().tolist()
+    if duplicates:
+        raise ValueError(f"Duplicate column_name entries in data dictionary: {duplicates}")
+    invalid_roles = sorted(set(dictionary["role"].dropna()) - VALID_ROLES)
+    if invalid_roles:
+        raise ValueError(f"Invalid data dictionary roles: {invalid_roles}")
+    targets = dictionary.loc[dictionary["role"] == "target", "column_name"].tolist()
+    if targets != [TARGET_COLUMN]:
+        raise ValueError(f"Data dictionary must define exactly one target named {TARGET_COLUMN!r}; found {targets}.")
+    normalized_types = dictionary["data_type"].astype(str).str.lower()
+    invalid_types = sorted(set(normalized_types) - VALID_DATA_TYPES)
+    if invalid_types:
+        raise ValueError(f"Unsupported data_type values in data dictionary: {invalid_types}")
+    dictionary["data_type"] = normalized_types
+    return dictionary
 
 
-def compare_columns_against_dictionary(df: pd.DataFrame, dictionary_path: str | Path) -> dict[str, list[str]]:
-    """So sánh schema dữ liệu với file mô tả cột."""
-    dictionary_columns = load_dictionary_columns(dictionary_path)
-    if not dictionary_columns:
-        return compare_columns(df)
-    return compare_columns(df, dictionary_columns)
+def load_dictionary_columns(path: str | Path) -> list[str]:
+    return load_data_dictionary(path)["column_name"].tolist()
 
 
-def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
-    """Normalize column names by stripping leading/trailing whitespace only.
-    
-    Note: Does NOT modify internal whitespace (e.g., 'Call  Failure' stays as-is).
-    This preserves the original structure from the raw CSV file.
-    """
-    normalized = df.copy()
-    normalized.columns = [str(col).strip() for col in normalized.columns]
-    return normalized
+def _dtype_matches(series: pd.Series, declared_type: str) -> bool:
+    if declared_type == "integer":
+        return is_integer_dtype(series.dtype)
+    if declared_type in {"float", "numeric"}:
+        return is_numeric_dtype(series.dtype)
+    if declared_type in {"string", "category"}:
+        return is_string_dtype(series.dtype) or is_object_dtype(series.dtype) or is_integer_dtype(series.dtype)
+    if declared_type == "boolean":
+        return pd.api.types.is_bool_dtype(series.dtype)
+    return False
 
 
 def validate_schema(
     df: pd.DataFrame,
+    dictionary: pd.DataFrame | None = None,
     expected_columns: list[str] | None = None,
-    strict: bool = False
+    strict: bool = True,
 ) -> dict[str, Any]:
-    """Validate dataset schema against expected columns.
-    
-    Args:
-        df: DataFrame to validate
-        expected_columns: List of expected column names (uses DEFAULT_EXPECTED_COLUMNS if None)
-        strict: If True, raises ValueError on schema mismatch
-    
-    Returns:
-        Dictionary with validation results: missing, extra, valid
-    """
-    expected = expected_columns or DEFAULT_EXPECTED_COLUMNS
-    actual = list(df.columns)
-    
-    missing = [col for col in expected if col not in actual]
-    extra = [col for col in actual if col not in expected]
-    valid = len(missing) == 0 and len(extra) == 0
-    
-    result = {
-        "valid": valid,
-        "expected_count": len(expected),
-        "actual_count": len(actual),
-        "missing": missing,
-        "extra": extra,
-    }
-    
+    """Validate columns and declared dtypes against a validated dictionary/schema."""
+    if dictionary is not None:
+        expected = dictionary["column_name"].tolist()
+    elif expected_columns is not None:
+        expected = expected_columns
+    else:
+        raise ValueError("validate_schema requires a validated dictionary or explicit expected_columns.")
+    actual = [column for column in df.columns if column != ROW_ID_COLUMN]
+    missing = [column for column in expected if column not in actual]
+    extra = [column for column in actual if column not in expected]
+    dtype_mismatches: list[dict[str, str]] = []
+    if dictionary is not None:
+        for record in dictionary[["column_name", "data_type"]].to_dict("records"):
+            column = record["column_name"]
+            if column in df.columns and not _dtype_matches(df[column], record["data_type"]):
+                dtype_mismatches.append({"column": column, "expected": record["data_type"], "actual": str(df[column].dtype)})
+    valid = not missing and not extra and not dtype_mismatches
+    result = {"valid": valid, "expected": expected, "actual": actual, "missing": missing, "extra": extra, "dtype_mismatches": dtype_mismatches}
     if strict and not valid:
-        raise ValueError(
-            f"Schema validation failed:\n"
-            f"  Missing columns: {missing}\n"
-            f"  Extra columns: {extra}"
-        )
-    
+        raise ValueError(f"Schema validation failed: missing={missing}, extra={extra}, dtype_mismatches={dtype_mismatches}")
     return result
 
 
+def compare_columns(df: pd.DataFrame, expected_columns: list[str]) -> dict[str, Any]:
+    return validate_schema(df, expected_columns=expected_columns, strict=False)
+
+
+def compare_columns_against_dictionary(df: pd.DataFrame, dictionary_path: str | Path) -> dict[str, Any]:
+    return validate_schema(df, dictionary=load_data_dictionary(dictionary_path), strict=True)
+
+
+def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    normalized = df.copy()
+    normalized.columns = [str(column).strip() for column in normalized.columns]
+    return normalized
+
+
 def check_missing(df: pd.DataFrame) -> dict[str, int]:
-    """Check for missing values in all columns."""
     missing = df.isnull().sum()
-    return {col: count for col, count in missing.items() if count > 0}
+    return {column: int(count) for column, count in missing.items() if count > 0}
 
 
 def check_duplicates(df: pd.DataFrame) -> dict[str, Any]:
-    """Check for duplicate rows."""
-    n_duplicates = df.duplicated().sum()
+    """Report duplicate content while ignoring the unique technical row_id."""
+    content = df.drop(columns=[ROW_ID_COLUMN], errors="ignore")
+    duplicate_mask = content.duplicated(keep="first")
+    group_sizes = content.groupby(list(content.columns), dropna=False).size()
+    duplicate_groups = group_sizes[group_sizes > 1]
     return {
-        "n_duplicates": int(n_duplicates),
-        "percentage": float(n_duplicates / len(df) * 100) if len(df) > 0 else 0.0,
+        "n_duplicate_excess_rows": int(duplicate_mask.sum()),
+        "n_duplicate_groups": int(len(duplicate_groups)),
+        "n_unique_content_rows": int(len(content.drop_duplicates())),
+        "max_group_size": int(duplicate_groups.max()) if len(duplicate_groups) else 1,
+        "percentage": float(duplicate_mask.mean() * 100) if len(content) else 0.0,
     }
 
 
 def check_invalid_values(df: pd.DataFrame) -> dict[str, Any]:
-    """Check for invalid values in specific columns (Iranian dataset rules)."""
-    issues = {}
-    
-    # Check Churn target (must be 0 or 1)
+    issues: dict[str, Any] = {}
     if TARGET_COLUMN in df.columns:
-        invalid_churn = df[~df[TARGET_COLUMN].isin([0, 1])]
-        if len(invalid_churn) > 0:
-            issues[TARGET_COLUMN] = {
-                "invalid_count": len(invalid_churn),
-                "invalid_values": invalid_churn[TARGET_COLUMN].unique().tolist(),
-            }
-    
-    # Check numeric columns for negative values where inappropriate
-    numeric_cols = df.select_dtypes(include=["number"]).columns
-    for col in numeric_cols:
-        if col in ["Age", "Subscription  Length", "Frequency of use", "Frequency of SMS"]:
-            negative_count = (df[col] < 0).sum()
-            if negative_count > 0:
-                if col not in issues:
-                    issues[col] = {}
-                issues[col]["negative_count"] = int(negative_count)
-    
+        invalid = df.loc[~df[TARGET_COLUMN].isin([0, 1]), TARGET_COLUMN]
+        if not invalid.empty:
+            issues[TARGET_COLUMN] = {"invalid_count": len(invalid), "invalid_values": invalid.unique().tolist()}
     return issues
 
 
 def basic_cleaning(df: pd.DataFrame) -> pd.DataFrame:
-    """Perform basic deterministic data cleaning for Iranian Churn Dataset.
-    
-    This function performs ONLY deterministic, lossless transformations:
-    - Strip column whitespace (leading/trailing only)
-    - Remove exact duplicate rows
-    - Ensure target column has correct dtype
-    
-    NOTE: NO imputation, NO scaling, NO encoding - those are done post-split.
-    """
-    cleaned = df.copy()
-    
-    # Normalize column names (strip only)
-    cleaned.columns = [str(col).strip() for col in cleaned.columns]
-    
-    # Remove exact duplicates
-    n_before = len(cleaned)
-    cleaned = cleaned.drop_duplicates().reset_index(drop=True)
-    n_after = len(cleaned)
-    if n_before != n_after:
-        print(f"Removed {n_before - n_after} duplicate rows")
-    
-    # Ensure target is numeric (0/1)
-    if TARGET_COLUMN in cleaned.columns:
-        # Iranian dataset already has 0/1, just ensure dtype
-        cleaned[TARGET_COLUMN] = pd.to_numeric(cleaned[TARGET_COLUMN], errors="coerce")
-        
-        if cleaned[TARGET_COLUMN].isnull().any():
-            raise ValueError(f"Target column '{TARGET_COLUMN}' contains non-numeric values")
-        
-        # Validate binary values
-        unique_vals = cleaned[TARGET_COLUMN].unique()
-        if not set(unique_vals).issubset({0, 1, 0.0, 1.0}):
-            raise ValueError(
-                f"Target column '{TARGET_COLUMN}' must be binary (0/1), "
-                f"found: {unique_vals}"
-            )
-        
-        cleaned[TARGET_COLUMN] = cleaned[TARGET_COLUMN].astype(int)
-    
+    """Apply deterministic type/name checks without dropping or reordering records."""
+    cleaned = normalize_column_names(df)
+    if ROW_ID_COLUMN not in cleaned.columns or not cleaned[ROW_ID_COLUMN].is_unique:
+        raise ValueError(f"{ROW_ID_COLUMN} must exist and be unique before cleaning.")
+    if TARGET_COLUMN not in cleaned.columns:
+        raise KeyError(f"Target column {TARGET_COLUMN!r} not found.")
+    converted = pd.to_numeric(cleaned[TARGET_COLUMN], errors="raise")
+    if not set(converted.unique()).issubset({0, 1}):
+        raise ValueError(f"Target column {TARGET_COLUMN!r} must be binary 0/1.")
+    cleaned[TARGET_COLUMN] = converted.astype("int64")
     return cleaned
 
 
-def split_features_target(
-    df: pd.DataFrame,
-    target_col: str = TARGET_COLUMN
-) -> tuple[pd.DataFrame, pd.Series]:
-    """Split DataFrame into features (X) and target (y)."""
-    if target_col not in df.columns:
-        raise KeyError(f"Target column '{target_col}' not found in DataFrame")
-    
-    X = df.drop(columns=[target_col])
-    y = df[target_col]
-    
-    return X, y
+def _content_groups(df: pd.DataFrame) -> pd.Series:
+    content = df.drop(columns=[ROW_ID_COLUMN], errors="ignore")
+    return pd.util.hash_pandas_object(content, index=False).astype(str)
+
+
+def assert_split_integrity(source_df: pd.DataFrame, train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame) -> None:
+    source_ids = set(source_df[ROW_ID_COLUMN])
+    train_ids = set(train_df[ROW_ID_COLUMN])
+    val_ids = set(val_df[ROW_ID_COLUMN])
+    test_ids = set(test_df[ROW_ID_COLUMN])
+    assert len(source_ids) == len(source_df), "Source row_id values are not unique."
+    assert train_ids.isdisjoint(val_ids), "Train and validation row_id overlap."
+    assert train_ids.isdisjoint(test_ids), "Train and test row_id overlap."
+    assert val_ids.isdisjoint(test_ids), "Validation and test row_id overlap."
+    assert train_ids | val_ids | test_ids == source_ids, "Split does not cover every source row_id exactly once."
+    assert len(train_ids) + len(val_ids) + len(test_ids) == len(source_ids), "Split contains repeated row_id values."
 
 
 def build_train_validation_split(
@@ -243,50 +201,51 @@ def build_train_validation_split(
     target_col: str = TARGET_COLUMN,
     test_size: float = 0.2,
     val_size: float = 0.25,
-    random_state: int = 42,
+    random_state: int = RANDOM_STATE,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Chia dữ liệu thành train / validation / test với stratify theo target.
-    
-    Target split: ~60% train, ~20% validation, ~20% test
-    
-    Implementation:
-    - First split: 80% temp (train+val), 20% test
-    - Second split: 75% train, 25% val (of the 80%)
-    - Final: 60% train, 20% val, 20% test
-    """
+    """Create reproducible ~60/20/20 stratified, duplicate-content-grouped splits."""
     if target_col not in df.columns:
-        raise KeyError(f"Không tìm thấy cột nhãn {target_col!r} trong DataFrame.")
+        raise KeyError(f"Không tìm thấy cột nhãn {target_col!r}.")
+    if ROW_ID_COLUMN not in df.columns or not df[ROW_ID_COLUMN].is_unique:
+        raise ValueError(f"{ROW_ID_COLUMN} must exist and be unique before splitting.")
+    if not np.isclose(test_size, 0.2) or not np.isclose(val_size, 0.25):
+        raise ValueError("Grouped Week 2 split currently supports the documented 60/20/20 ratio only.")
+    from sklearn.model_selection import StratifiedGroupKFold
 
-    from sklearn.model_selection import train_test_split
+    groups = _content_groups(df)
+    splitter = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=random_state)
+    fold = np.full(len(df), -1, dtype=int)
+    for fold_number, (_, held_out) in enumerate(splitter.split(df, df[target_col], groups)):
+        fold[held_out] = fold_number
+    if (fold < 0).any():
+        raise AssertionError("At least one record was not assigned to a split fold.")
+    test_df = df.iloc[np.flatnonzero(fold == 0)].copy().reset_index(drop=True)
+    val_df = df.iloc[np.flatnonzero(fold == 1)].copy().reset_index(drop=True)
+    train_df = df.iloc[np.flatnonzero(fold >= 2)].copy().reset_index(drop=True)
+    assert_split_integrity(df, train_df, val_df, test_df)
+    return train_df, val_df, test_df
 
-    # First split: 80% temp, 20% test
-    temp_df, test_df = train_test_split(
-        df,
-        test_size=test_size,
-        stratify=df[target_col],
-        random_state=random_state,
-    )
-    
-    # Second split: 75% train, 25% val (of the 80% = 60% and 20% of total)
-    train_df, val_df = train_test_split(
-        temp_df,
-        test_size=val_size,
-        stratify=temp_df[target_col],
-        random_state=random_state,
-    )
 
-    return train_df.reset_index(drop=True), val_df.reset_index(drop=True), test_df.reset_index(drop=True)
+def split_features_target(df: pd.DataFrame, target_col: str = TARGET_COLUMN, feature_columns: list[str] | None = None) -> tuple[pd.DataFrame, pd.Series]:
+    """Return the approved Week 3 matrix and target; never infer eligibility."""
+    if target_col not in df.columns:
+        raise KeyError(f"Target column {target_col!r} not found.")
+    if feature_columns is None:
+        from src.features import CONFIRMED_MODEL_FEATURES
+        feature_columns = CONFIRMED_MODEL_FEATURES
+    forbidden = {target_col, ROW_ID_COLUMN}
+    if forbidden & set(feature_columns):
+        raise ValueError(f"Feature list contains forbidden columns: {sorted(forbidden & set(feature_columns))}")
+    missing = [column for column in feature_columns if column not in df.columns]
+    if missing:
+        raise KeyError(f"Requested feature columns not found: {missing}")
+    return df[feature_columns].copy(), df[target_col].copy()
 
 
 def summarize_dataset(df: pd.DataFrame) -> dict[str, Any]:
-    """Tạo tóm tắt nhanh về số dòng, cột, missing và nhãn."""
-    summary = {
+    return {
         "shape": df.shape,
-        "missing_values": df.isna().sum().sort_values(ascending=False).to_dict(),
-        "target_distribution": (
-            df[TARGET_COLUMN].value_counts(normalize=True).sort_index().round(4).to_dict()
-            if TARGET_COLUMN in df.columns
-            else {}
-        ),
+        "missing_values": df.isna().sum().to_dict(),
+        "target_distribution": df[TARGET_COLUMN].value_counts(normalize=True).sort_index().to_dict(),
+        "duplicates": check_duplicates(df),
     }
-    return summary
