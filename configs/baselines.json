@@ -1,5 +1,5 @@
 {
-  "status": "assignment_aligned",
+  "status": "provisional_metadata_pending",
   "seed": 42,
   "features": [
     "Call  Failure",
@@ -12,25 +12,23 @@
     "Distinct Called Numbers",
     "Age Group",
     "Tariff Plan",
+    "Age"
+  ],
+  "excluded_pending": [
     "Status",
-    "Age",
     "Customer Value"
   ],
-  "excluded_pending": [],
   "excluded_technical": [
     "row_id",
     "Churn"
   ],
   "classification_threshold": 0.5,
   "precision_zero_division": 0,
-  "metric_definitions": {
-    "AP": "Average Precision",
-    "PR_AUC": "area under the precision-recall curve by trapezoidal integration"
-  },
-  "python": "3.11.9",
-  "pandas": "3.0.6",
-  "numpy": "2.4.6",
-  "sklearn": "1.9.1",
+  "PR_summary": "Average Precision (not trapezoidal PR-AUC)",
+  "python": "3.13.7",
+  "pandas": "3.0.5",
+  "numpy": "2.5.2",
+  "sklearn": "1.9.0",
   "raw_sha256": "90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1",
   "B0_train_churn_rate": 0.15714285714285714,
   "B1": {

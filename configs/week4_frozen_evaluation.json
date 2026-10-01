@@ -13,7 +13,7 @@
   "raw_sha256": "90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1",
   "seed": 42,
   "split_manifest": "data/processed/split_indices.json",
-  "split_manifest_sha256": "95212f84c04d014ccdb92fd039122bd9be91c98730fc6266ac9db36d785e955e",
+  "split_manifest_sha256": "3dabcd0d4a6f35928e9fedeccfb75ebe34d846eac9de82d5c1cb24f04eb0450a",
   "split_sizes": {
     "train": 1890,
     "validation": 630,
