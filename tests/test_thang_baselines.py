@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
+from src.features import PENDING_VERIFICATION_FEATURES
 import joblib
 import numpy as np
 import pandas as pd
@@ -43,7 +43,10 @@ class BaselineTests(unittest.TestCase):
 
     def test_feature_inputs_exclude_target_identity_and_pending_variables(self):
         X, _ = model_inputs(self.train)
-        self.assertFalse(set(X.columns) & {'Churn', 'row_id', 'Status', 'Customer Value'})
+
+        forbidden = {'Churn', 'row_id'} | set(PENDING_VERIFICATION_FEATURES)
+
+        self.assertFalse(set(X.columns) & forbidden)
 
     def test_invalid_probability_rejected(self):
         with self.assertRaises(ValueError):

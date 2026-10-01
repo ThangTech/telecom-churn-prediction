@@ -94,8 +94,9 @@ class IdentityAndSplitTests(unittest.TestCase):
         features, target = split_features_target(train)
         self.assertNotIn("Churn", features.columns)
         self.assertNotIn(ROW_ID_COLUMN, features.columns)
-        self.assertNotIn("Status", features.columns)
-        self.assertNotIn("Customer Value", features.columns)
+        self.assertIn("Status", features.columns)
+        self.assertIn("Customer Value", features.columns)
+        self.assertEqual(len(features.columns), 13)
         self.assertEqual(target.name, "Churn")
 
 

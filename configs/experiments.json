@@ -1,5 +1,11 @@
 {
-  "status": "provisional_metadata_pending",
+  "status": "assignment_aligned",
+  "artifact_scope": "13-feature CV rerun used by the frozen Week 4 evaluation",
+  "week4_audit_feature_set_status": "FINAL",
+  "week4_temporal_decisions": {
+    "Status": "KEEP",
+    "Customer Value": "KEEP"
+  },
   "seed": 42,
   "features": [
     "Call  Failure",
@@ -12,23 +18,25 @@
     "Distinct Called Numbers",
     "Age Group",
     "Tariff Plan",
-    "Age"
-  ],
-  "excluded_pending": [
     "Status",
+    "Age",
     "Customer Value"
   ],
+  "excluded_pending": [],
   "excluded_technical": [
     "row_id",
     "Churn"
   ],
   "classification_threshold": 0.5,
   "precision_zero_division": 0,
-  "PR_summary": "Average Precision (not trapezoidal PR-AUC)",
-  "python": "3.13.7",
-  "pandas": "3.0.5",
-  "numpy": "2.5.2",
-  "sklearn": "1.9.0",
+  "metric_definitions": {
+    "AP": "Average Precision",
+    "PR_AUC": "area under the precision-recall curve by trapezoidal integration"
+  },
+  "python": "3.11.9",
+  "pandas": "3.0.6",
+  "numpy": "2.4.6",
+  "sklearn": "1.9.1",
   "raw_sha256": "90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1",
   "CV": "5-fold StratifiedGroupKFold on train only",
   "search_C": [
@@ -40,23 +48,27 @@
     null,
     "balanced"
   ],
-  "selection_metric": "highest mean train-CV AP; configuration order breaks ties",
+  "primary_selection_metric": "mean train-CV PR_AUC",
+  "secondary_metric": "Average Precision",
+  "selection_metric": "highest mean train-CV PR_AUC; configuration order breaks ties within 1e-6",
   "selected": {
     "run": "B1_C10",
     "class_weight": "none",
     "C": 10.0,
-    "AP_mean": 0.7389693706137871,
-    "AP_std": 0.0657444763333989,
-    "ROC_AUC_mean": 0.922573723071501,
-    "ROC_AUC_std": 0.0211761615835021,
-    "Brier_mean": 0.0738904450038935,
-    "Brier_std": 0.01075250015179324,
-    "precision_mean": 0.8501268556005399,
-    "precision_std": 0.10708343158110906,
-    "recall_mean": 0.41779661016949154,
-    "recall_std": 0.12056621605953294,
-    "F1_mean": 0.550801587182279,
-    "F1_std": 0.11074087780909936
+    "AP_mean": 0.7551574213994933,
+    "AP_std": 0.06864297930595105,
+    "PR_AUC_mean": 0.7524633194385545,
+    "PR_AUC_std": 0.0695775848913666,
+    "ROC_AUC_mean": 0.9317124037481216,
+    "ROC_AUC_std": 0.020388637546242153,
+    "Brier_mean": 0.07182745665338851,
+    "Brier_std": 0.011534870788108198,
+    "precision_mean": 0.768422757475083,
+    "precision_std": 0.11406188183839808,
+    "recall_mean": 0.44468926553672317,
+    "recall_std": 0.1246906222807158,
+    "F1_mean": 0.5563666086683989,
+    "F1_std": 0.11577501256288734
   },
   "test_evaluated": false
 }

@@ -14,6 +14,7 @@ from src.features import (
     TARGET,
     TECHNICAL_COLUMNS,
 )
+from src.metrics import evaluate_probabilities
 
 try:
     from scripts.baseline_common import ROOT, model_inputs, prepare_data
@@ -26,12 +27,26 @@ else:
 
 
 class SonFeatureEligibilityTests(unittest.TestCase):
-    def test_provisional_feature_set_excludes_target_technical_and_pending(self):
+    def test_final_feature_set_excludes_target_and_technical_columns(self):
         confirmed = set(CONFIRMED_MODEL_FEATURES)
         self.assertNotIn(TARGET, confirmed)
         self.assertTrue(confirmed.isdisjoint(TECHNICAL_COLUMNS))
-        self.assertTrue(confirmed.isdisjoint(PENDING_VERIFICATION_FEATURES))
-        self.assertEqual(len(CONFIRMED_MODEL_FEATURES), 11)
+        self.assertEqual(PENDING_VERIFICATION_FEATURES, [])
+        self.assertEqual(len(CONFIRMED_MODEL_FEATURES), 13)
+        self.assertTrue({"Status", "Customer Value"}.issubset(confirmed))
+
+
+class SonMetricTests(unittest.TestCase):
+    def test_ap_and_true_pr_auc_are_finite_bounded_and_distinct(self):
+        metrics = evaluate_probabilities(
+            np.array([0, 0, 1, 1]),
+            np.array([0.10, 0.40, 0.35, 0.80]),
+        )
+        for name in ["AP", "PR_AUC"]:
+            self.assertTrue(np.isfinite(metrics[name]))
+            self.assertGreaterEqual(metrics[name], 0.0)
+            self.assertLessEqual(metrics[name], 1.0)
+        self.assertNotAlmostEqual(metrics["AP"], metrics["PR_AUC"])
 
 
 @unittest.skipUnless(
