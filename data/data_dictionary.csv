@@ -11,5 +11,5 @@ Age Group,integer,"Ordinal age group: 1=younger, 5=older",ordinal_category,featu
 Tariff Plan,integer,"1=pay as you go, 2=contractual",nominal_category,feature,observation_window,"1-2",no_missing,UCI definition
 Status,integer,"Subscription status: 1=active, 2=non-active",nominal_category,feature,observation_window,"1-2",no_missing,"KEEP. UCI states all non-target attributes aggregate the first 9 months."
 Age,integer,Customer age in years,years,feature,observation_window,">=0",no_missing,UCI variable table
-Customer Value,float,Calculated value of customer,calculated_value,feature,observation_window,">=0",no_missing,"KEEP. UCI states all non-target attributes aggregate the first 9 months; exact formula is not published on the dataset page."
+Customer Value,float,Calculated value of customer,calculated_value,feature,observation_window,">=0",no_missing,"KEEP. UCI explicitly places every non-target attribute in the first 9 months before the churn label. Exact formula is not published; this is a limitation, not evidence of leakage."
 Churn,integer,Target variable indicating customer churn status,binary,target,outcome_window,"0 (no churn), 1 (churn)",no_missing,"Binary target. Distribution: 0(84.3%), 1(15.7%). Moderate class imbalance."

@@ -1,5 +1,11 @@
 {
   "status": "assignment_aligned",
+  "artifact_scope": "13-feature CV rerun used by the frozen Week 4 evaluation",
+  "week4_audit_feature_set_status": "FINAL",
+  "week4_temporal_decisions": {
+    "Status": "KEEP",
+    "Customer Value": "KEEP"
+  },
   "seed": 42,
   "features": [
     "Call  Failure",

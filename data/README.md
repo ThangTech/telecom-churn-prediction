@@ -15,7 +15,7 @@ Citation: *Iranian Churn [Dataset]. (2020). UCI Machine Learning Repository. htt
 
 ## Prediction point
 
-UCI states that every attribute except `Churn` is aggregated from the first nine months; churn is the customer state at the end of month 12, with a three-month planning gap. `Status` is defined as 1=active and 2=non-active. `Customer Value` is defined as the calculated value of the customer. This establishes temporal availability for both features, although UCI does not publish the exact Customer Value formula on the dataset page.
+UCI states that every attribute except `Churn` is aggregated from the first nine months; churn is the customer state at the end of month 12, with a three-month planning gap. `Status` is defined as 1=active and 2=non-active. `Customer Value` is defined as the calculated value of the customer. Both are KEEP because UCI explicitly places them in the pre-prediction observation window and there is no evidence they use churn/outcome information. The exact Customer Value formula is not published; formula unknown is a limitation, not evidence of leakage. The 13-feature set is FINAL.
 
 ## Checksum and provenance
 

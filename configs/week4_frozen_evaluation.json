@@ -1,0 +1,175 @@
+{
+  "status": "final_test_evaluated",
+  "week4_audit_status": "PASS",
+  "feature_set_status": "FINAL",
+  "week4_results_status": "VALID; frozen evaluation reported without test-based tuning",
+  "freeze_timestamp_utc": "2026-09-30T15:01:54.327151+00:00",
+  "snapshot": {
+    "integration_base": "origin/Thang@7e3be82d",
+    "son_branch_head": "3e04db76b1fb",
+    "working_tree": "Week 3 assignment-aligned uncommitted snapshot"
+  },
+  "raw_file": "data/raw/Customer Churn.csv",
+  "raw_sha256": "90d5fb6bd1630cd4de4b4d28fcf8b4cb92a8f6ab7484605b0799d47386f7dbe1",
+  "seed": 42,
+  "split_manifest": "data/processed/split_indices.json",
+  "split_manifest_sha256": "95212f84c04d014ccdb92fd039122bd9be91c98730fc6266ac9db36d785e955e",
+  "split_sizes": {
+    "train": 1890,
+    "validation": 630,
+    "test": 630
+  },
+  "features": [
+    "Call  Failure",
+    "Complains",
+    "Subscription  Length",
+    "Charge  Amount",
+    "Seconds of Use",
+    "Frequency of use",
+    "Frequency of SMS",
+    "Distinct Called Numbers",
+    "Age Group",
+    "Tariff Plan",
+    "Status",
+    "Age",
+    "Customer Value"
+  ],
+  "excluded_features": [],
+  "target": "Churn",
+  "technical_columns": [
+    "row_id"
+  ],
+  "feature_freeze_reason": "UCI states all non-target attributes are first-nine-month aggregates.",
+  "cv_rerun_after_13_feature_change": true,
+  "cv_result_source": {
+    "summary": "reports/week3_experiments.csv",
+    "folds": "reports/week3_cv_folds.csv",
+    "config": "configs/experiments.json",
+    "feature_count": 13,
+    "runs": 6,
+    "folds_per_run": 5,
+    "selected_run": "B1_C10"
+  },
+  "temporal_audit": {
+    "Status": {
+      "decision": "KEEP",
+      "definition": "1=active, 2=non-active",
+      "evidence": "UCI states every non-target attribute is aggregated in the first nine months, before the month-12 churn label.",
+      "included_in_evaluated_artifact": true
+    },
+    "Customer Value": {
+      "decision": "KEEP",
+      "definition": "calculated value of customer",
+      "evidence": "UCI explicitly lists Customer Value among the non-target attributes and states every non-target attribute is aggregated in the first nine months, before the month-12 churn label.",
+      "limitation": "The exact formula and component fields are not published; formula unknown is a documentation limitation, not evidence of leakage.",
+      "included_in_evaluated_artifact": true
+    }
+  },
+  "preprocessing": {
+    "numeric_features": [
+      "Call  Failure",
+      "Subscription  Length",
+      "Charge  Amount",
+      "Seconds of Use",
+      "Frequency of use",
+      "Frequency of SMS",
+      "Distinct Called Numbers",
+      "Age",
+      "Customer Value"
+    ],
+    "numeric": [
+      "median imputer",
+      "StandardScaler"
+    ],
+    "categorical_features": [
+      "Complains",
+      "Age Group",
+      "Tariff Plan",
+      "Status"
+    ],
+    "categorical": [
+      "most-frequent imputer",
+      "OneHotEncoder(handle_unknown=ignore)"
+    ],
+    "fit_scope": "fold-train for CV; train for validation; train+validation only after freeze for final fit"
+  },
+  "model": {
+    "type": "LogisticRegression",
+    "class_weight": null,
+    "C": 10.0,
+    "random_state": 42,
+    "max_iter": 3000
+  },
+  "primary_metric": "mean train-CV PR_AUC",
+  "secondary_metrics": [
+    "AP",
+    "ROC_AUC",
+    "Brier",
+    "precision",
+    "recall",
+    "F1"
+  ],
+  "selection_source": "train-only 5-fold StratifiedGroupKFold; validation used only for capacity thresholds",
+  "threshold_source": "validation probabilities from the candidate fitted on train only",
+  "threshold_refit_protocol": "threshold selected on train-fit validation probabilities; final candidate then refitted on train+validation; the same absolute threshold was applied to test",
+  "threshold_validity_after_final_fit": "VALID AS FROZEN; validation target coverage was approximately 10/20/30%, while realized coverage after refit is not guaranteed to be exact",
+  "capacity_thresholds": [
+    {
+      "capacity_level": "LOW",
+      "capacity_rate": 0.1,
+      "threshold": 0.47683299575833915,
+      "intended_capacity_count": 63,
+      "coverage_rate": 0.1
+    },
+    {
+      "capacity_level": "MEDIUM",
+      "capacity_rate": 0.2,
+      "threshold": 0.3431830803885034,
+      "intended_capacity_count": 126,
+      "coverage_rate": 0.2
+    },
+    {
+      "capacity_level": "HIGH",
+      "capacity_rate": 0.3,
+      "threshold": 0.16505680661293284,
+      "intended_capacity_count": 189,
+      "coverage_rate": 0.30158730158730157
+    }
+  ],
+  "primary_threshold": {
+    "capacity_level": "MEDIUM",
+    "threshold": 0.3431830803885034,
+    "capacity_rate": 0.2,
+    "reason": "Care team can contact approximately 20% of customers; selected on validation before test."
+  },
+  "error_grouping": {
+    "fit_partition": "train+validation predictors only",
+    "Subscription  Length": {
+      "q1": 32.0,
+      "q2": 37.0
+    },
+    "Charge  Amount": {
+      "q1": 0.0,
+      "q2": 1.0
+    }
+  },
+  "final_fit_partition": "train+validation",
+  "test_evaluated": true,
+  "test_evaluation_count": 1,
+  "test_evaluation_started_utc": "2026-09-30T15:06:57.313558+00:00",
+  "test_evaluated_utc": "2026-09-30T15:06:58.205472+00:00",
+  "final_test_metrics_artifact": "reports/week4_test_final.csv",
+  "test_decisions_changed_after_evaluation": false,
+  "test_used_for_tuning": false,
+  "test_contamination_risk": "NONE FOR THE REPORTED FROZEN EVALUATION; threshold capacity after refit is approximate, which is a protocol limitation rather than test leakage",
+  "baseline_pr_auc_note": "For a degenerate constant score, trapezoidal PR_AUC is inflated by endpoint geometry and must not be interpreted as ranking ability; AP equals prevalence and ROC_AUC=0.5 are the clearer references.",
+  "post_test_audit": {
+    "timestamp_utc": "2026-09-30T15:37:35.0080679Z",
+    "changes": "status, provenance and interpretation metadata only; model, features, thresholds and test metrics were not changed; test was not rerun"
+  },
+  "final_correction": {
+    "timestamp_utc": "2026-09-30T16:15:10.9542245Z",
+    "basis": "UCI explicitly places Customer Value among non-target attributes aggregated in the first-nine-month observation window; missing formula retained as a limitation, not treated as leakage evidence",
+    "test_rerun": false
+  }
+}

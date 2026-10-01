@@ -1,0 +1,3 @@
+model,fit_partition,evaluation_partition,class_weight,C,threshold,n_samples,AP,PR_AUC,ROC_AUC,Brier,precision,recall,F1,predicted_positive,precision_defined,TN,FP,FN,TP
+week4_final_candidate,train+validation,test,none,10.0,0.3431830803885034,630,0.7981048778389417,0.7965818169228353,0.9499514923243737,0.06279841392795002,0.6782608695652174,0.7878787878787878,0.7289719626168224,115,True,494,37,21,78
+

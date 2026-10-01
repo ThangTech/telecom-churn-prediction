@@ -117,8 +117,9 @@ IQR flags are descriptive only. No record is removed automatically: high values 
 
 - `Churn` is the target and is never an input feature.
 - `row_id` is technical and is never an input feature.
-- UCI states that every non-target attribute is aggregated from the first nine months. `Status` and `Customer Value` are therefore included in the 13-feature Week 3 set.
-- UCI defines `Status` as active/non-active and `Customer Value` as calculated customer value; its public dataset page does not give the exact Customer Value formula.
+- UCI states that every non-target attribute is aggregated from the first nine months. `Status` is KEEP.
+- `Customer Value` is KEEP because UCI explicitly places every non-target attribute in the first-nine-month observation window and there is no evidence it uses churn/outcome information.
+- The exact Customer Value formula is not published; this is a documentation limitation, not evidence of leakage. The 13-feature list is FINAL; the test is not rerun or used for tuning.
 - Statistical association is not evidence that a feature was available before the prediction point.
 
 ## Checksum and provenance
