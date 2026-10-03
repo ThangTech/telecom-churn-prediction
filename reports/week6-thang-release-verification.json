@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "scope": "Release and inference smoke test only; no test labels were loaded and no evaluation metrics were recomputed.",
+  "checks": {
+    "python_3_11_9": true,
+    "locked_python_packages": true,
+    "smoke_fixture_has_frozen_features": true,
+    "week4_acceptance_passes": true,
+    "model_load_has_no_version_warning": true,
+    "api_smoke_probability_is_valid": true,
+    "openapi_contains_required_endpoints": true,
+    "node_20_or_newer": true,
+    "npm_available": true
+  },
+  "failed_checks": [],
+  "environment": {
+    "python": "3.11.9",
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.17.1",
+      "joblib": "1.6.0",
+      "matplotlib": "3.11.2",
+      "seaborn": "0.13.2",
+      "fastapi": "0.142.2",
+      "httpx": "0.28.1",
+      "pydantic": "2.13.5",
+      "uvicorn": "0.54.0"
+    },
+    "node": "v22.19.0",
+    "npm": "11.6.0"
+  },
+  "model_version": "week4-final-2f4d96f63e41",
+  "smoke_prediction": {
+    "churn_probability": 0.0023258083491722943,
+    "predicted_churn": false,
+    "priority_group": "NOT_PRIORITIZED",
+    "threshold": 0.3431830803885034,
+    "capacity_mode": "MEDIUM",
+    "model_version": "week4-final-2f4d96f63e41"
+  }
+}
