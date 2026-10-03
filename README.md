@@ -2,7 +2,7 @@
 ## Giới thiệu
 
 Dự án xây dựng quy trình dự đoán khả năng khách hàng viễn thông rời mạng
-(customer churn). Quy trình dự kiến bao gồm chuẩn bị dữ liệu, tạo đặc trưng,
+(customer churn). Quy trình bao gồm chuẩn bị dữ liệu, tạo đặc trưng,
 huấn luyện mô hình, đánh giá và cung cấp dự đoán qua API.
 
 ## Thiết lập môi trường
@@ -15,7 +15,7 @@ Windows PowerShell:
 
 ```powershell
 .venv\Scripts\activate
-pip install -r requirements.txt
+python -m pip install -r requirements-lock.txt
 ```
 
 Kiểm chứng Tuần 2:
@@ -27,8 +27,8 @@ python scripts/eda_train.py
 ```
 
 `scripts/eda_train.py` là implementation EDA canonical và chỉ phân tích train.
-`Status` và `Customer Value` đang chờ xác minh định nghĩa/thời điểm có dữ liệu,
-nên bị loại khỏi feature set mặc định tại `src/features.py`.
+Feature set cuối gồm 13 biến. `Status` và `Customer Value` được giữ theo audit
+Week 4; công thức chi tiết của `Customer Value` vẫn là giới hạn tài liệu.
 
 ## Cấu trúc dự án
 
@@ -43,7 +43,7 @@ nên bị loại khỏi feature set mặc định tại `src/features.py`.
 | `src/evaluate.py`          | Đánh giá mô hình và xuất kết quả                                          |
 | `src/predict.py`           | Chạy suy luận trên dữ liệu mới                                            |
 | `app/backend/`             | API phục vụ dự đoán                                                       |
-| `app/frontend/`            | Giao diện người dùng                                                      |
+| `web/`                     | Giao diện React TypeScript                                                |
 | `configs/`                 | Cấu hình chia tập, seed, mô hình và thí nghiệm                            |
 | `models/`                  | Pipeline và mô hình đã huấn luyện                                         |
 | `notebooks/`               | Phân tích khám phá và thử nghiệm có kiểm soát                             |
@@ -54,7 +54,7 @@ nên bị loại khỏi feature set mặc định tại `src/features.py`.
 
 ## Cài đặt
 
-Yêu cầu Python 3.10 trở lên. Tạo môi trường ảo và cài đặt các thư viện:
+Môi trường bàn giao dùng Python 3.11.9 và các phiên bản trong `requirements-lock.txt`:
 
 ```bash
 python -m venv .venv
@@ -64,14 +64,14 @@ Windows:
 
 ```bash
 .venv\Scripts\activate
-pip install -r requirements.txt
+python -m pip install -r requirements-lock.txt
 ```
 
 macOS/Linux:
 
 ```bash
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements-lock.txt
 ```
 
 ## Quy trình làm việc
@@ -85,8 +85,9 @@ pip install -r requirements.txt
 
 ## Trạng thái
 
-Dự án đang ở giai đoạn khởi tạo cấu trúc. Các module trong `src/`, backend,
-frontend và bộ kiểm thử sẽ được triển khai trong các bước tiếp theo.
+Dự án đã có pipeline Logistic Regression đóng băng, đánh giá cuối, FastAPI,
+frontend React và bộ kiểm thử. Xem `HUONG_DAN_KIEM_THU_VA_BAN_GIAO.md` để tạo
+môi trường sạch, chạy kiểm thử và demo luồng dự đoán từ đầu đến cuối.
 
 ## Ghi chú dữ liệu
 

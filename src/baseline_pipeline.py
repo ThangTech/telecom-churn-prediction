@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from src.features import CONFIRMED_MODEL_FEATURES
 
-CATEGORICAL = ["Complains", "Age Group", "Tariff Plan"]
+CATEGORICAL = ["Complains", "Age Group", "Tariff Plan", "Status"]
 NUMERIC = [name for name in CONFIRMED_MODEL_FEATURES if name not in CATEGORICAL]
 
 

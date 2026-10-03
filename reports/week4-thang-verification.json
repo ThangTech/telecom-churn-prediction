@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "scope": "Artifact acceptance only; raw test labels were not loaded and test predictions were not rerun.",
+  "checks": {
+    "frozen_status": true,
+    "selection_did_not_use_test": true,
+    "raw_checksum": true,
+    "split_manifest_checksum": true,
+    "model_feature_order": true,
+    "model_configuration": true,
+    "preprocessing_matches_frozen_config": true,
+    "thresholds_match_all_consumers": true,
+    "published_counts_are_complete": true,
+    "published_metrics_match_counts": true,
+    "published_probability_metrics_bounded": true
+  },
+  "failed_checks": [],
+  "artifacts": {
+    "frozen_config_sha256": "102aa3b9ae32be3e76eb339e32707e7f218c4c5bc3ecddd7308bb6be7b33a618",
+    "model_sha256": "2f4d96f63e41427649bece5b686220be6346ae6d6f8cea0ae93516d2cdc7e7d8",
+    "test_report_sha256": "6b9d6ecb8564c31f294e6afbec997d91fdc7542c4fe5ebdfc040b14a9c3efbc6"
+  },
+  "published_test_summary": {
+    "n_samples": 630,
+    "AP": 0.7981048778389417,
+    "PR_AUC": 0.7965818169228353,
+    "ROC_AUC": 0.9499514923243736,
+    "Brier": 0.06279841392795,
+    "precision": 0.6782608695652174,
+    "recall": 0.7878787878787878,
+    "F1": 0.7289719626168224,
+    "TN": 494,
+    "FP": 37,
+    "FN": 21,
+    "TP": 78
+  }
+}
