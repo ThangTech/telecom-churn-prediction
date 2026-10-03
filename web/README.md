@@ -13,7 +13,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Mặc định file mẫu bật `VITE_USE_MOCK_API=true`. Mock chỉ hoạt động với Vite development server và mọi kết quả mock đều có nhãn **DỮ LIỆU MÔ PHỎNG**. Production build luôn gọi API thật.
+File mẫu gọi backend thật bằng `VITE_USE_MOCK_API=false`. Nếu cần phát triển frontend khi backend chưa chạy, có thể tạm đổi thành `true`; mock chỉ hoạt động với Vite development server và mọi kết quả mock đều có nhãn **DỮ LIỆU MÔ PHỎNG**. Production build luôn gọi API thật.
 
 Để tích hợp backend:
 
@@ -22,7 +22,7 @@ VITE_API_BASE_URL=http://localhost:8000
 VITE_USE_MOCK_API=false
 ```
 
-Frontend gọi `POST /api/churn-score`. Hợp đồng đề xuất và các điểm cần Thắng xác nhận nằm tại `docs/frontend-api-contract.md`.
+Frontend gọi `POST /api/churn-score`. Backend và hướng dẫn chạy nằm tại `app/backend/`; hợp đồng đã xác nhận nằm tại `docs/frontend-api-contract.md`.
 
 ## Kiểm tra
 

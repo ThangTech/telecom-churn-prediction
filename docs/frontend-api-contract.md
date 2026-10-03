@@ -1,6 +1,6 @@
 # Frontend ↔ Backend API contract — Week 5
 
-Trạng thái: **PROPOSED / CHỜ THẮNG XÁC NHẬN**. Tại thời điểm audit Week 5, repository chưa có implementation hoặc OpenAPI schema cho `POST /api/churn-score`. Tài liệu này mô tả hợp đồng mà frontend hiện cần; nó không tuyên bố API thật đã tồn tại.
+Trạng thái: **IMPLEMENTED / DA KIEM THU**. Backend FastAPI tại `app/backend/` triển khai `POST /api/churn-score`, OpenAPI schema và error contract dưới đây. Model được nạp từ artifact Week 4 đã đóng băng; API không huấn luyện lại model.
 
 ## Endpoint và cấu hình
 
@@ -82,7 +82,7 @@ Frontend đã xử lý:
 - HTTP khác không thành công;
 - JSON lỗi hoặc thiếu/sai kiểu các trường response bắt buộc.
 
-Backend nên dùng một body lỗi nhất quán, ví dụ:
+Backend dùng body lỗi nhất quán:
 
 ```json
 {
@@ -102,12 +102,12 @@ Nếu frontend và backend khác origin, Thắng cần cấu hình CORS cho đú
 
 ## Checklist phối hợp với Thắng
 
-- [ ] Xác nhận request dùng object `features` lồng hay flat body.
-- [ ] Xác nhận tên key giữ nguyên dấu cách hay backend dùng alias snake_case.
-- [ ] Xác nhận enum `capacity_mode` và `priority_group`.
-- [ ] Xác nhận backend trả `predicted_churn`, `threshold`, `model_version` và `request_id`.
-- [ ] Xác nhận error body và status 400/422.
-- [ ] Xác nhận CORS và base URL môi trường tích hợp.
-- [ ] Chạy integration/E2E với pipeline thật; tắt `VITE_USE_MOCK_API`.
+- [x] Request dùng object `features` lồng.
+- [x] Tên key giữ nguyên tên cột gốc và dấu cách.
+- [x] Enum `capacity_mode` và `priority_group` khớp frontend.
+- [x] Backend trả `predicted_churn`, `threshold`, `model_version` và `request_id`.
+- [x] Error body nhất quán và validation trả status 422.
+- [x] CORS cho Vite local, có biến môi trường để cấu hình origin.
+- [x] Integration test dùng pipeline thật và fixture minh họa, không dùng test set.
 
-Cho đến khi checklist hoàn tất, tích hợp API có trạng thái **chờ**, và frontend development chỉ dùng mock được gắn nhãn rõ ràng.
+Để chạy E2E, đặt `VITE_USE_MOCK_API=false`, khởi động backend cổng 8000 rồi khởi động frontend cổng 5173.
